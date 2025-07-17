@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sweet Shop Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        input, select, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        input, select {
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            min-width: 80px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #1e7e34; }
+        
+        .btn-warning { background: #ffc107; color: #212529; }
+        .btn-warning:hover { background: #e0a800; }
+        
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        
+        .sweets-list {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .sweet-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .sweet-item:last-child {
+            border-bottom: none;
+        }
+        
+        .sweet-info {
+            flex: 1;
+        }
+        
+        .sweet-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .sweet-details {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .sweet-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .sweet-actions button {
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .modal h2 {
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 4px;
+            color: white;
+            z-index: 1001;
+            transform: translateX(100%);
+            transition: transform 0.3s;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .toast.success { background: #28a745; }
+        .toast.error { background: #dc3545; }
+        .toast.info { background: #17a2b8; }
+        
+        @media (max-width: 600px) {
+            .sweet-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .sweet-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🍬 Sweet Shop Management</h1>
+    
+    <div class="controls">
+        <div class="form-row">
+            <input type="text" id="searchName" placeholder="Search by name">
+            <select id="searchCategory">
+                <option value="">All Categories</option>
+                <option value="Nut-Based">Nut-Based</option>
+                <option value="Milk-Based">Milk-Based</option>
+                <option value="Vegetable-Based">Vegetable-Based</option>
+                <option value="Chocolate">Chocolate</option>
+            </select>
+            <input type="number" id="minPrice" placeholder="Min Price">
+            <input type="number" id="maxPrice" placeholder="Max Price">
+        </div>
+        <div class="form-row">
+            <button onclick="handleSearch()">Search</button>
+            <button onclick="clearSearch()">Clear</button>
+            <button class="btn-success" onclick="showAddModal()">Add Sweet</button>
+        </div>
+    </div>
+    
+    <div class="sweets-list" id="sweetsList">
+        <div class="loading">Loading sweets...</div>
+    </div>
+    
+    <!-- Add/Edit Modal -->
+    <div class="modal" id="sweetModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Add Sweet</h2>
+            <form id="sweetForm" onsubmit="handleSweetForm(event)">
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="sweetName" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="sweetCategory" required>
+                        <option value="">Select Category</option>
+                        <option value="Nut-Based">Nut-Based</option>
+                        <option value="Milk-Based">Milk-Based</option>
+                        <option value="Vegetable-Based">Vegetable-Based</option>
+                        <option value="Chocolate">Chocolate</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Price (₹)</label>
+                    <input type="number" id="sweetPrice" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" id="sweetQuantity" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="hideModal()">Cancel</button>
+                    <button type="submit" class="btn-success">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Quantity Modal -->
+    <div class="modal" id="quantityModal">
+        <div class="modal-content">
+            <h2 id="quantityTitle">Purchase Sweet</h2>
+            <form id="quantityForm" onsubmit="handleQuantityForm(event)">
+                <div class="form-group">
+                    <label>Quantity</label>
+                    <input type="number" id="quantityAmount" min="1" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="hideQuantityModal()">Cancel</button>
+                    <button type="submit" class="btn-success" id="quantitySubmit">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        const API_BASE = '/api/sweets';
+        let currentSweets = [];
+        let currentSweetId = null;
+        let currentAction = null;
+        
+        // Load sweets on page load
+        document.addEventListener('DOMContentLoaded', loadSweets);
+        
+        async function loadSweets() {
+            try {
+                const response = await fetch(API_BASE);
+                const data = await response.json();
+                if (data.success) {
+                    currentSweets = data.data;
+                    renderSweets(currentSweets);
+                }
+            } catch (error) {
+                showToast('Error loading sweets', 'error');
+            }
+        }
+        
+        function renderSweets(sweets) {
+            const list = document.getElementById('sweetsList');
+            
+            if (sweets.length === 0) {
+                list.innerHTML = '<div class="loading">No sweets found</div>';
+                return;
+            }
+            
+            list.innerHTML = sweets.map(sweet => `
+                <div class="sweet-item">
+                    <div class="sweet-info">
+                        <div class="sweet-name">${sweet.name}</div>
+                        <div class="sweet-details">
+                            ${sweet.category} • ₹${sweet.price} • Stock: ${sweet.quantity}
+                        </div>
+                    </div>
+                    <div class="sweet-actions">
+                        <button onclick="showPurchaseModal(${sweet.id})" ${sweet.quantity === 0 ? 'disabled' : ''}>
+                            Purchase
+                        </button>
+                        <button class="btn-success" onclick="showRestockModal(${sweet.id})">
+                            Restock
+                        </button>
+                        <button class="btn-warning" onclick="showEditModal(${sweet.id})">
+                            Edit
+                        </button>
+                        <button class="btn-danger" onclick="deleteSweet(${sweet.id})">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function handleSearch() {
+            const params = new URLSearchParams();
+            const name = document.getElementById('searchName').value.trim();
+            const category = document.getElementById('searchCategory').value;
+            const minPrice = document.getElementById('minPrice').value;
+            const maxPrice = document.getElementById('maxPrice').value;
+            
+            if (name) params.append('name', name);
+            if (category) params.append('category', category);
+            if (minPrice) params.append('minPrice', minPrice);
+            if (maxPrice) params.append('maxPrice', maxPrice);
+            
+            try {
+                const response = await fetch(`${API_BASE}/search?${params}`);
+                const data = await response.json();
+                if (data.success) {
+                    renderSweets(data.data);
+                }
+            } catch (error) {
+                showToast('Search failed', 'error');
+            }
+        }
+        
+        function clearSearch() {
+            document.getElementById('searchName').value = '';
+            document.getElementById('searchCategory').value = '';
+            document.getElementById('minPrice').value = '';
+            document.getElementById('maxPrice').value = '';
+            loadSweets();
+        }
+        
+        function showAddModal() {
+            document.getElementById('modalTitle').textContent = 'Add Sweet';
+            document.getElementById('sweetForm').reset();
+            currentSweetId = null;
+            showModal();
+        }
+        
+        async function showEditModal(id) {
+            try {
+                const response = await fetch(`${API_BASE}/${id}`);
+                const data = await response.json();
+                if (data.success) {
+                    const sweet = data.data;
+                    document.getElementById('modalTitle').textContent = 'Edit Sweet';
+                    document.getElementById('sweetName').value = sweet.name;
+                    document.getElementById('sweetCategory').value = sweet.category;
+                    document.getElementById('sweetPrice').value = sweet.price;
+                    document.getElementById('sweetQuantity').value = sweet.quantity;
+                    currentSweetId = id;
+                    showModal();
+                }
+            } catch (error) {
+                showToast('Error loading sweet', 'error');
+            }
+        }
+        
+        async function handleSweetForm(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('sweetName').value.trim(),
+                category: document.getElementById('sweetCategory').value,
+                price: parseFloat(document.getElementById('sweetPrice').value),
+                quantity: parseInt(document.getElementById('sweetQuantity').value)
+            };
+            
+            try {
+                const url = currentSweetId ? `${API_BASE}/${currentSweetId}` : API_BASE;
+                const method = currentSweetId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast(data.message || 'Sweet saved', 'success');
+                    hideModal();
+                    loadSweets();
+                } else {
+                    showToast(data.message || 'Save failed', 'error');
+                }
+            } catch (error) {
+                showToast('Error saving sweet', 'error');
+            }
+        }
+        
+        async function deleteSweet(id) {
+            if (!confirm('Delete this sweet?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/${id}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('Sweet deleted', 'success');
+                    loadSweets();
+                } else {
+                    showToast('Delete failed', 'error');
+                }
+            } catch (error) {
+                showToast('Error deleting sweet', 'error');
+            }
+        }
+        
+        function showPurchaseModal(id) {
+            currentSweetId = id;
+            currentAction = 'purchase';
+            document.getElementById('quantityTitle').textContent = 'Purchase Sweet';
+            document.getElementById('quantitySubmit').textContent = 'Purchase';
+            document.getElementById('quantityForm').reset();
+            showQuantityModal();
+        }
+        
+        function showRestockModal(id) {
+            currentSweetId = id;
+            currentAction = 'restock';
+            document.getElementById('quantityTitle').textContent = 'Restock Sweet';
+            document.getElementById('quantitySubmit').textContent = 'Restock';
+            document.getElementById('quantityForm').reset();
+            showQuantityModal();
+        }
+        
+        async function handleQuantityForm(e) {
+            e.preventDefault();
+            
+            const quantity = parseInt(document.getElementById('quantityAmount').value);
+            
+            try {
+                const response = await fetch(`${API_BASE}/${currentSweetId}/${currentAction}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ quantity })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    hideQuantityModal();
+                    loadSweets();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Operation failed', 'error');
+            }
+        }
+        
+        function showModal() {
+            document.getElementById('sweetModal').classList.add('show');
+        }
+        
+        function hideModal() {
+            document.getElementById('sweetModal').classList.remove('show');
+        }
+        
+        function showQuantityModal() {
+            document.getElementById('quantityModal').classList.add('show');
+        }
+        
+        function hideQuantityModal() {
+            document.getElementById('quantityModal').classList.remove('show');
+        }
+        
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        // Close modals on backdrop click
+        document.getElementById('sweetModal').addEventListener('click', (e) => {
+            if (e.target.id === 'sweetModal') hideModal();
+        });
+        
+        document.getElementById('quantityModal').addEventListener('click', (e) => {
+            if (e.target.id === 'quantityModal') hideQuantityModal();
+        });
+    </script>
+</body>
+</html>
